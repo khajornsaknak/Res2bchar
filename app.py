@@ -1,37 +1,32 @@
 from fastapi import FastAPI
-import joblib
+from pydantic import BaseModel
 import pandas as pd
+import joblib
 
 app = FastAPI()
 
 # โหลดโมเดล
 model = joblib.load("Yield_char__CatBoost.joblib")
 
-@app.get("/")
-def home():
-    return {"message": "Biochar API Running"}
+# ดู feature ของโมเดล
+print(model.feature_names_)
 
-@app.get("/predict")
-def predict(
-    temperature: float,
-    time: float,
-    ash: float,
-    vm: float,
-    fc: float
-):
+class InputData(BaseModel):
+    temperature: float
+    heating_rate: float
+    residence_time: float
 
-    # สร้าง DataFrame
+@app.post("/predict")
+def predict(data: InputData):
+
     X = pd.DataFrame([{
-        "temperature": temperature,
-        "time": time,
-        "ash": ash,
-        "vm": vm,
-        "fc": fc
+        "temperature": data.temperature,
+        "heating_rate": data.heating_rate,
+        "residence_time": data.residence_time
     }])
 
-    # ทำนาย
     pred = model.predict(X)[0]
 
     return {
-        "predicted_yield": float(pred)
+        "biochar_yield": float(pred)
     }
